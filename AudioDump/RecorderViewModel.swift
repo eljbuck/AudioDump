@@ -43,7 +43,7 @@ final class RecorderViewModel: ObservableObject {
         // create unique filename in Documents
         let url = documentsDirectory()
             .appendingPathComponent(snapshotFilename())
-            .appendingPathExtension("m4a")
+            .appendingPathExtension("caf") // PCM container
 
         do {
             let duration = try recorder.saveSnapshot(to: url)
@@ -71,10 +71,10 @@ final class RecorderViewModel: ObservableObject {
     private func loadExistingSnapshots() async {
         let dir = documentsDirectory()
         let contents = (try? fileManager.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.creationDateKey], options: [.skipsHiddenFiles])) ?? []
-        // filter only .m4a files created by us
-        let m4as = contents.filter { $0.pathExtension.lowercased() == "m4a" }
+        // filter only .caf files created by us
+        let files = contents.filter { $0.pathExtension.lowercased() == "caf" }
         // sort newest first
-        let sorted = m4as.sorted { lhs, rhs in
+        let sorted = files.sorted { lhs, rhs in
             let lDate = (try? lhs.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
             let rDate = (try? rhs.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date.distantPast
             return lDate > rDate
