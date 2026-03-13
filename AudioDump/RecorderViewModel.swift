@@ -15,15 +15,22 @@ final class RecorderViewModel: ObservableObject {
 
     private let recorder = RollingRecorder(rollingWindowSeconds: 30)
     private let fileManager = FileManager.default
+    private let session = AVAudioSession.sharedInstance()
 
     init() {
         Task {
+            await preparePlaybackSessionIfNeeded()
             await loadExistingSnapshots()
         }
     }
 
     func startRecording() {
         Task {
+            // Ensure no playback while recording
+            if player.isPlaying {
+                player.stop()
+            }
+
             do {
                 try await recorder.start()
                 isRecording = true
@@ -37,6 +44,11 @@ final class RecorderViewModel: ObservableObject {
     func stopRecording() {
         recorder.stop()
         isRecording = false
+
+        // Optionally, return session to playback-only so subsequent playback is reliable
+        Task {
+            await preparePlaybackSessionIfNeeded()
+        }
     }
 
     func saveSnapshot() {
@@ -63,7 +75,16 @@ final class RecorderViewModel: ObservableObject {
     }
 
     func play(_ snapshot: VoiceMemoSnapshot) {
-        player.play(url: snapshot.fileURL)
+        // Disallow playback while recording
+        guard !isRecording else { return }
+
+        // Ensure session is active for playback in case app was just launched
+        Task {
+            await preparePlaybackSessionIfNeeded()
+            await MainActor.run {
+                player.play(url: snapshot.fileURL)
+            }
+        }
     }
 
     // MARK: - Persistence
@@ -111,4 +132,21 @@ final class RecorderViewModel: ObservableObject {
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         return "Snapshot_\(formatter.string(from: Date()))"
     }
+
+    // MARK: - Audio session (playback)
+
+    private func preparePlaybackSessionIfNeeded() async {
+        // If already recording, don't override the .playAndRecord configuration managed by RollingRecorder
+        guard !isRecording else { return }
+
+        do {
+            // Use .playback to duck/route appropriately for playing files.
+            // .ambient would also work if you want to respect silent switch.
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true, options: [])
+        } catch {
+            // Non-fatal: playback may still work, but this improves reliability
+        }
+    }
 }
+
