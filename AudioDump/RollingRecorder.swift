@@ -220,7 +220,6 @@ final class RollingRecorder {
             throw RecorderError.fileWriteFailed
         }
 
-        // Prepare linear PCM (Float32 mono) settings matching our canonical format
         guard let pcmFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                                             sampleRate: actualSampleRate,
                                             channels: channelCount,
@@ -228,7 +227,6 @@ final class RollingRecorder {
             throw RecorderError.formatUnavailable
         }
 
-        // Create the output file (use CAF/WAV in the caller for the URL extension)
         let audioFile: AVAudioFile
         do {
             audioFile = try AVAudioFile(forWriting: url, settings: pcmFormat.settings)
@@ -299,7 +297,7 @@ final class RollingRecorder {
                 throw RecorderError.microphonePermissionDenied
             }
         } else {
-            // Pre-iOS 17 fallback
+            // pre-iOS 17 fallback
             let status = session.recordPermission
             if status == .undetermined {
                 let granted = await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in

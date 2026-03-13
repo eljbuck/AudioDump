@@ -26,7 +26,6 @@ final class RecorderViewModel: ObservableObject {
 
     func startRecording() {
         Task {
-            // Ensure no playback while recording
             if player.isPlaying {
                 player.stop()
             }
@@ -45,14 +44,12 @@ final class RecorderViewModel: ObservableObject {
         recorder.stop()
         isRecording = false
 
-        // Optionally, return session to playback-only so subsequent playback is reliable
         Task {
             await preparePlaybackSessionIfNeeded()
         }
     }
 
     func saveSnapshot() {
-        // create unique filename in Documents
         let url = documentsDirectory()
             .appendingPathComponent(snapshotFilename())
             .appendingPathExtension("caf") // PCM container
@@ -75,10 +72,8 @@ final class RecorderViewModel: ObservableObject {
     }
 
     func play(_ snapshot: VoiceMemoSnapshot) {
-        // Disallow playback while recording
         guard !isRecording else { return }
 
-        // Ensure session is active for playback in case app was just launched
         Task {
             await preparePlaybackSessionIfNeeded()
             await MainActor.run {
@@ -136,16 +131,12 @@ final class RecorderViewModel: ObservableObject {
     // MARK: - Audio session (playback)
 
     private func preparePlaybackSessionIfNeeded() async {
-        // If already recording, don't override the .playAndRecord configuration managed by RollingRecorder
         guard !isRecording else { return }
 
         do {
-            // Use .playback to duck/route appropriately for playing files.
-            // .ambient would also work if you want to respect silent switch.
             try session.setCategory(.playback, mode: .default, options: [])
             try session.setActive(true, options: [])
         } catch {
-            // Non-fatal: playback may still work, but this improves reliability
         }
     }
 }
