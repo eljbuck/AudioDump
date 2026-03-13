@@ -27,9 +27,6 @@ This uses an SPSC ring buffer with Swift Atomics to ensure real-time thread is n
 
 ## Known Issues
 
-- Audio set up only happens on "Start Recording", so when the user's first action is to playback snapshots, they do not start until the user presses "Start Recording"
-- Playback should be disallowed while recording
-
 ## Features To Add
 
 - [ ] Add tests
